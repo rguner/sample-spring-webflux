@@ -23,7 +23,7 @@ public class SampleSpringWebFluxApp {
         SpringApplication.run(SampleSpringWebFluxApp.class, args);
     }
 
-    @Bean
+    @Bean(name = "slowTaskExecutor")
     public ThreadPoolTaskExecutor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(5);

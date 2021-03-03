@@ -50,7 +50,9 @@ public class SendingApp {
 		mockBackEnd = new MockWebServer();
 		mockBackEnd.setDispatcher(dispatcher);
 		mockBackEnd.start(8082);
+		System.out.println("STARTED________");
 		System.setProperty("target.uri", "http://localhost:" + mockBackEnd.getPort());
+		/*
 		TestRestTemplate template = new TestRestTemplate();
 		for (int i = 0; i < 20; i++) {
 			new Thread(() -> {
@@ -59,5 +61,7 @@ public class SendingApp {
 				}
 			}).start();
 		}
+
+		 */
 	}
 }

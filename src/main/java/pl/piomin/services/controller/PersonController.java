@@ -1,10 +1,13 @@
 package pl.piomin.services.controller;
 
+import java.sql.Time;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import pl.piomin.services.model.Person;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
@@ -23,7 +26,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class PersonController {
 
     @Autowired
+    @Qualifier("slowTaskExecutor")
     ThreadPoolTaskExecutor taskExecutor;
+
     @Autowired
     WebClient client;
 
@@ -31,20 +36,43 @@ public class PersonController {
 
     @GetMapping("/json")
     public Flux<Person> findPersonsJson() {
-        return Flux.fromStream(this::prepareStream)
-                .doOnNext(person -> LOGGER.info("Server produces: {}", person));
+        LOGGER.info("Http Request findPersonsJson");
+        Flux<Person> flux = Flux.fromStream(this::prepareStream)
+                //.doOnNext(person -> LOGGER.info("Server produces: {}", person));
+                .log();
+        //flux.subscribe(System.out::println);
+        LOGGER.info("Http Request findPersonsJson finished");
+        return flux;
     }
 
     @GetMapping(value = "/stream", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Person> findPersonsStream() {
-        return Flux.fromStream(this::prepareStream).delaySequence(Duration.ofMillis(100))
-                .doOnNext(person -> LOGGER.info("Server produces: {}", person));
+        LOGGER.info("Http Request findPersonsStream");
+        Flux<Person> flux = Flux.fromStream(this::prepareStream).delaySequence(Duration.ofMillis(100))
+                //.doOnNext(person -> LOGGER.info("Server produces: {}", person));
+                .log();
+        // flux.subscribe(System.out::println);
+
+        /*
+        flux.subscribe(p -> {
+            System.out.println(p.getFirstName() + " " + Thread.currentThread().getName());
+            try {
+                TimeUnit.MILLISECONDS.sleep(2000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        */
+        LOGGER.info("Http Request findPersonsStream finished");
+        return flux;
     }
 
     @GetMapping(value = "/stream/back-pressure", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Person> findPersonsStreamBackPressure() {
         return Flux.fromStream(this::prepareStream).delayElements(Duration.ofMillis(100))
-                .doOnNext(person -> LOGGER.info("Server produces: {}", person));
+                .doOnNext(person -> LOGGER.info("Server produces: {}", person))
+                ;
+                //.log();
     }
 
     private Stream<Person> prepareStream() {
@@ -69,15 +97,19 @@ public class PersonController {
 		);
 	}
 
-    @GetMapping("/integration/{param}")
+    // http://localhost:8080/persons/integration/RAMAZAN
+	@GetMapping("/integration/{param}")
     public Flux<Person> findPersonsIntegration(@PathVariable("param") String param) {
-        return Flux.fromStream(this::prepareStreamPart1).log()
-				.mergeWith(
-						client.get().uri("/slow/" + param)
-								.retrieve()
-								.bodyToFlux(Person.class)
-								.log()
-				);
+        LOGGER.info("Http Request findPersonsIntegration");
+        Flux<Person> flux = Flux.fromStream(this::prepareStreamPart1).log()
+                .mergeWith(
+                        client.get().uri("/slow/" + param)
+                                .retrieve()
+                                .bodyToFlux(Person.class)
+                                .log()
+                );
+        LOGGER.info("Http Request findPersonsIntegration finished");
+        return flux;
     }
 
     @GetMapping("/integration-in-different-pool/{param}")
