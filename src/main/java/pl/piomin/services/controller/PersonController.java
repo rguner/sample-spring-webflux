@@ -26,8 +26,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class PersonController {
 
     @Autowired
-    @Qualifier("slowTaskExecutor")
-    ThreadPoolTaskExecutor taskExecutor;
+    @Qualifier("subscriberTaskExecutor")
+    ThreadPoolTaskExecutor subscriberTaskExecutor;
+
+    @Autowired
+    @Qualifier("publisherTaskExecutor")
+    ThreadPoolTaskExecutor publisherTaskExecutor;
 
     @Autowired
     WebClient client;
@@ -39,8 +43,11 @@ public class PersonController {
         LOGGER.info("Http Request findPersonsJson");
         Flux<Person> flux = Flux.fromStream(this::prepareStream)
                 //.doOnNext(person -> LOGGER.info("Server produces: {}", person));
+                // publish, subscribe ikisi de çalışıyor, ancak ikisi birlikte set edilirse publisher çalışıyor.
+                //.publishOn(Schedulers.fromExecutor(publisherTaskExecutor))
+                .subscribeOn(Schedulers.fromExecutor(subscriberTaskExecutor))
                 .log();
-        //flux.subscribe(System.out::println);
+        flux.subscribe(p-> LOGGER.info("Person: {}", p));
         LOGGER.info("Http Request findPersonsJson finished");
         return flux;
     }
@@ -51,6 +58,7 @@ public class PersonController {
         Flux<Person> flux = Flux.fromStream(this::prepareStream).delaySequence(Duration.ofMillis(100))
                 //.doOnNext(person -> LOGGER.info("Server produces: {}", person));
                 .log();
+
         // flux.subscribe(System.out::println);
 
         /*
@@ -114,14 +122,30 @@ public class PersonController {
 
     @GetMapping("/integration-in-different-pool/{param}")
     public Flux<Person> findPersonsIntegrationInDifferentPool(@PathVariable("param") String param) {
-		return Flux.fromStream(this::prepareStreamPart1).log()
-				.mergeWith(
-						client.get().uri("/slow/" + param)
-								.retrieve()
-								.bodyToFlux(Person.class)
-								.log()
-								.publishOn(Schedulers.fromExecutor(taskExecutor))
-				);
+        LOGGER.info("Http Request findPersonsIntegrationInDifferentPool");
+        /*
+        Flux<Person> flux = Flux.fromStream(this::prepareStreamPart1).log()
+                .mergeWith(
+                        client.get().uri("/slow/" + param)
+                                .retrieve()
+                                .bodyToFlux(Person.class)
+                                .log()
+                                //.publishOn(Schedulers.fromExecutor(publisherTaskExecutor))
+                                //.subscribeOn(Schedulers.fromExecutor(subscriberTaskExecutor))
+                )
+                .subscribeOn(Schedulers.fromExecutor(subscriberTaskExecutor));
+        */
+        // subscribeOn(Schedulers.fromExecutor(subscriberTaskExecutor)); aşağıdaki işlemde bir işe yaramadı
+        Flux<Person> flux = client.get().uri("/slow/" + param)
+                .retrieve()
+                .bodyToFlux(Person.class)
+                .publishOn(Schedulers.fromExecutor(publisherTaskExecutor))
+                .log()
+                ;
+
+
+        LOGGER.info("Http Request findPersonsIntegrationInDifferentPool finished");
+        return flux;
     }
 
 }

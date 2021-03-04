@@ -23,13 +23,24 @@ public class SampleSpringWebFluxApp {
         SpringApplication.run(SampleSpringWebFluxApp.class, args);
     }
 
-    @Bean(name = "slowTaskExecutor")
-    public ThreadPoolTaskExecutor taskExecutor() {
+    @Bean(name = "subscriberTaskExecutor")
+    public ThreadPoolTaskExecutor taskExecutor1() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(5);
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("slow-");
+        executor.setThreadNamePrefix("subscriber-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "publisherTaskExecutor")
+    public ThreadPoolTaskExecutor taskExecutor2() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(10);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("publisher-");
         executor.initialize();
         return executor;
     }
