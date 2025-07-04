@@ -9,7 +9,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.concurrent.Executor;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +41,17 @@ public class SampleSpringWebFluxApp {
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("publisher-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "singleThreadTaskExecutor")
+    public ThreadPoolTaskExecutor taskExecutor3() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("publisher-single-thread-");
         executor.initialize();
         return executor;
     }

@@ -34,6 +34,11 @@ public class PersonController {
     ThreadPoolTaskExecutor publisherTaskExecutor;
 
     @Autowired
+    @Qualifier("singleThreadTaskExecutor")
+    ThreadPoolTaskExecutor singleThreadTaskExecutor;
+
+
+    @Autowired
     WebClient client;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(PersonController.class);
@@ -55,11 +60,12 @@ public class PersonController {
     @GetMapping(value = "/stream", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Person> findPersonsStream() {
         LOGGER.info("Http Request findPersonsStream");
-        Flux<Person> flux = Flux.fromStream(this::prepareStream).delaySequence(Duration.ofMillis(100))
+        Flux<Person> flux = Flux.fromStream(this::prepareStream).delaySequence(Duration.ofMillis(1000))
                 //.doOnNext(person -> LOGGER.info("Server produces: {}", person));
                 .log();
 
         // flux.subscribe(System.out::println);
+
 
         /*
         flux.subscribe(p -> {
@@ -70,17 +76,28 @@ public class PersonController {
                 e.printStackTrace();
             }
         });
-        */
+
+         */
+
         LOGGER.info("Http Request findPersonsStream finished");
         return flux;
     }
 
     @GetMapping(value = "/stream/back-pressure", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
     public Flux<Person> findPersonsStreamBackPressure() {
-        return Flux.fromStream(this::prepareStream).delayElements(Duration.ofMillis(100))
+        return Flux.fromStream(this::prepareStream).delayElements(Duration.ofMillis(1000))
                 .doOnNext(person -> LOGGER.info("Server produces: {}", person))
                 ;
                 //.log();
+    }
+
+    @GetMapping(value = "/stream/back-pressure-single-thread", produces = MediaType.APPLICATION_STREAM_JSON_VALUE)
+    public Flux<Person> findPersonsStreamBackPressureWithSingleThread() {
+        return Flux.fromStream(this::prepareStream).delayElements(Duration.ofMillis(1000))
+                .publishOn(Schedulers.fromExecutor(singleThreadTaskExecutor))
+                .doOnNext(person -> LOGGER.info("Server produces: {}", person))
+                ;
+        //.log();
     }
 
     private Stream<Person> prepareStream() {
