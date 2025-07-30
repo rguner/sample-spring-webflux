@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -13,8 +14,10 @@ import jakarta.annotation.PostConstruct;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 @SpringBootApplication
+// https://github.com/micrometer-metrics/micrometer-samples/blob/main/webflux/src/main/java/com/example/micrometer/WebFluxApplication.java
 public class SampleSpringWebFluxApp {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SampleSpringWebFluxApp.class);
@@ -30,6 +33,7 @@ public class SampleSpringWebFluxApp {
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("subscriber-");
+        executor.setTaskDecorator(mdcTaskDecorator());
         executor.initialize();
         return executor;
     }
@@ -41,6 +45,7 @@ public class SampleSpringWebFluxApp {
         executor.setMaxPoolSize(10);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("publisher-");
+        executor.setTaskDecorator(mdcTaskDecorator());
         executor.initialize();
         return executor;
     }
@@ -52,8 +57,26 @@ public class SampleSpringWebFluxApp {
         executor.setMaxPoolSize(1);
         executor.setQueueCapacity(100);
         executor.setThreadNamePrefix("publisher-single-thread-");
+        executor.setTaskDecorator(mdcTaskDecorator());
         executor.initialize();
         return executor;
+    }
+
+    @Bean
+    public TaskDecorator mdcTaskDecorator() {
+        return runnable -> {
+            var contextMap = MDC.getCopyOfContextMap();
+            return () -> {
+                if (contextMap != null) {
+                    MDC.setContextMap(contextMap);
+                }
+                try {
+                    runnable.run();
+                } finally {
+                    MDC.clear();
+                }
+            };
+        };
     }
 
     @Value("${target.uri}")

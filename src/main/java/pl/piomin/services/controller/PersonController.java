@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import pl.piomin.services.model.Person;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,6 +164,13 @@ public class PersonController {
 
         LOGGER.info("Http Request findPersonsIntegrationInDifferentPool finished");
         return flux;
+    }
+
+
+    @GetMapping("/traceId")
+    public Mono<String> traceId() {
+        LOGGER.info("Http Request traceId");
+        return Mono.just("testing traceId");
     }
 
 }

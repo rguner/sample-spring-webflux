@@ -1,6 +1,10 @@
-logging.pattern.console: "%clr(%d{HH:mm:ss.SSS}){blue} %clr(---){faint} %clr([%15.15t]){yellow} %clr(:){red} %clr(%m){faint}%n"
+logging.pattern.console: "%clr(%d{HH:mm:ss.SSS}){blue} %clr(---){faint} %clr([%15.15t]){yellow} %clr(:){red} %clr(%m){faint} traceId=%X{traceId:-} spanId=%X{spanId:-} %n]"
 spring.output.ansi.enabled: ALWAYS
 
 target.uri: http://localhost:8082
 
 management.endpoint.health.show-details: always # optionally - just for information
+
+management:
+  tracing:
+    enabled: true
